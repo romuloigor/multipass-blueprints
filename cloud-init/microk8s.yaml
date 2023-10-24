@@ -1,0 +1,42 @@
+package_upgrade: true
+
+packages:
+#- build-essential
+#- cmake
+#- curl
+- git
+#- lsb-release
+#- openssh-client
+#- openssh-server
+#- python3
+#- python3-pip
+- snapd
+#- unzip
+#- vim
+#- wget
+#- zip
+
+snap:
+  commands:
+  - sudo snap install microk8s --classic --channel=1.28/stable
+
+write_files:
+
+- content: |
+    echo "failure-domain=42" > /var/snap/microk8s/current/args/ha-conf
+  path: /var/snap/microk8s/current/args/ha-conf
+  append: true
+  defer: true
+
+runcmd:
+- |
+  # Initialise microk8s
+  microk8s.stop
+  microk8s.start
+
+  # Status microk8s
+  sudo microk8s status --wait-ready
+  mkdir -p ~/.kube/
+  sudo microk8s.config  > ~/.kube/config
+  #sudo microk8s enable ha-cluster
+  sudo microk8s enable dns

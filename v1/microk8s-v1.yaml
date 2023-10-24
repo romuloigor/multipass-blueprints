@@ -1,0 +1,70 @@
+description: microk8s.io/docs/high-availability
+version: 0.1
+
+runs-on:
+- x86_64
+
+instances:
+  mk8s-001:
+    image: 22.04 LTS
+
+    limits:
+      min-cpu: 2
+      min-mem: 4G
+      min-disk: 8G
+
+    timeout: 1800
+    cloud-init:
+      vendor-data: |
+
+        package_upgrade: true
+
+        packages:
+        #- build-essential
+        #- cmake
+        #- curl
+        - git
+        #- lsb-release
+        #- openssh-client
+        #- openssh-server
+        #- python3
+        #- python3-pip
+        - snapd
+        #- unzip
+        #- vim
+        #- wget
+        #- zip
+
+        snap:
+          commands:
+          - sudo snap install microk8s --classic --channel=1.28/stable
+
+        write_files:
+
+        - content: |
+            echo "failure-domain=42" > /var/snap/microk8s/current/args/ha-conf
+          path: /var/snap/microk8s/current/args/ha-conf
+          append: true
+          defer: true
+
+        runcmd:
+        - |
+          # Initialise microk8s
+          microk8s.stop
+          microk8s.start
+
+          # Status microk8s
+          sudo microk8s status --wait-ready
+          mkdir -p ~/.kube/
+          sudo microk8s.config  > ~/.kube/config
+          #sudo microk8s enable ha-cluster
+          sudo microk8s enable dns
+
+        final_message: "The MicroK8s environment is up, after $UPTIME seconds."
+
+health-check: |
+  set -e
+
+  microk8s --version
+  ls /var/snap/microk8s/current/args/ha-conf
+  ls /home/ubuntu/.kube/config
